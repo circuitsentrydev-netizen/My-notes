@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { Note, Category } from '../types';
 import { storage } from '../utils/storage';
 import { useAuth } from './AuthContext';
@@ -22,7 +22,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshNotes = async () => {
+  const refreshNotes = useCallback(async () => {
     if (!user) {
       setNotes([]);
       setIsLoading(false);
@@ -32,16 +32,18 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     try {
       const all = await storage.getNotes();
       setNotes(all.filter(n => n.userId === user.id));
+    } catch (e) {
+      console.error('Failed to load notes', e);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     refreshNotes();
-  }, [user]);
+  }, [refreshNotes]);
 
-  const addNote = async (data: Omit<Note, 'id' | 'userId' | 'dateAdded'>) => {
+  const addNote = useCallback(async (data: Omit<Note, 'id' | 'userId' | 'dateAdded'>) => {
     if (!user) return;
     const newNote: Note = {
       ...data,
@@ -53,9 +55,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     all.push(newNote);
     await storage.saveNotes(all);
     await refreshNotes();
-  };
+  }, [user, refreshNotes]);
 
-  const updateNote = async (id: string, updates: Partial<Note>) => {
+  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
     const all = await storage.getNotes();
     const index = all.findIndex(n => n.id === id);
     if (index === -1) return;
@@ -66,21 +68,21 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     };
     await storage.saveNotes(all);
     await refreshNotes();
-  };
+  }, [refreshNotes]);
 
-  const deleteNote = async (id: string) => {
+  const deleteNote = useCallback(async (id: string) => {
     const all = await storage.getNotes();
     const filtered = all.filter(n => n.id !== id);
     await storage.saveNotes(filtered);
     await refreshNotes();
-  };
+  }, [refreshNotes]);
 
-  const getNotesByCategory = (category: Category) => {
+  const getNotesByCategory = useCallback((category: Category) => {
     if (category === 'all') return notes;
     return notes.filter(n => n.category === category);
-  };
+  }, [notes]);
 
-  const searchNotes = (query: string, category: Category = 'all') => {
+  const searchNotes = useCallback((query: string, category: Category = 'all') => {
     const base = getNotesByCategory(category);
     if (!query.trim()) return base;
     const q = query.toLowerCase();
@@ -89,15 +91,15 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         n.content.toLowerCase().includes(q) ||
         (n.title && n.title.toLowerCase().includes(q))
     );
-  };
+  }, [getNotesByCategory]);
 
-  const sortNotes = (list: Note[], ascending: boolean) => {
+  const sortNotes = useCallback((list: Note[], ascending: boolean) => {
     return [...list].sort((a, b) => {
       const da = new Date(a.dateAdded).getTime();
       const db = new Date(b.dateAdded).getTime();
       return ascending ? da - db : db - da;
     });
-  };
+  }, []);
 
   return (
     <NotesContext.Provider

@@ -23,14 +23,75 @@ export type AppTabParamList = {
 const Tab = createBottomTabNavigator<AppTabParamList>();
 const NotesStack = createNativeStackNavigator<NotesStackParamList>();
 
-function NotesStackNavigator({ category }: { category: Category }) {
+// Stable stack navigators (avoids re-mount issues)
+function AllNotesStack() {
   return (
     <NotesStack.Navigator>
       <NotesStack.Screen
         name="NotesList"
         component={NotesScreen}
-        initialParams={{ category }}
-        options={{ title: category === 'all' ? 'All Notes' : `${category.charAt(0).toUpperCase() + category.slice(1)} Notes` }}
+        initialParams={{ category: 'all' }}
+        options={{ title: 'All Notes' }}
+      />
+      <NotesStack.Screen
+        name="AddEditNote"
+        component={AddEditNoteScreen}
+        options={({ route }) => ({
+          title: route.params?.noteId ? 'Edit Note' : 'New Note',
+        })}
+      />
+    </NotesStack.Navigator>
+  );
+}
+
+function WorkNotesStack() {
+  return (
+    <NotesStack.Navigator>
+      <NotesStack.Screen
+        name="NotesList"
+        component={NotesScreen}
+        initialParams={{ category: 'work' }}
+        options={{ title: 'Work Notes' }}
+      />
+      <NotesStack.Screen
+        name="AddEditNote"
+        component={AddEditNoteScreen}
+        options={({ route }) => ({
+          title: route.params?.noteId ? 'Edit Note' : 'New Note',
+        })}
+      />
+    </NotesStack.Navigator>
+  );
+}
+
+function StudyNotesStack() {
+  return (
+    <NotesStack.Navigator>
+      <NotesStack.Screen
+        name="NotesList"
+        component={NotesScreen}
+        initialParams={{ category: 'study' }}
+        options={{ title: 'Study Notes' }}
+      />
+      <NotesStack.Screen
+        name="AddEditNote"
+        component={AddEditNoteScreen}
+        options={({ route }) => ({
+          title: route.params?.noteId ? 'Edit Note' : 'New Note',
+        })}
+      />
+    </NotesStack.Navigator>
+  );
+}
+
+function PersonalNotesStack() {
+  return (
+    <NotesStack.Navigator>
+      <NotesStack.Screen
+        name="NotesList"
+        component={NotesScreen}
+        initialParams={{ category: 'personal' }}
+        options={{ title: 'Personal Notes' }}
       />
       <NotesStack.Screen
         name="AddEditNote"
@@ -48,30 +109,28 @@ export default function AppNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'document-text';
+          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'list';
+
           if (route.name === 'Work') iconName = 'briefcase';
           else if (route.name === 'Study') iconName = 'school';
           else if (route.name === 'Personal') iconName = 'person';
           else if (route.name === 'Profile') iconName = 'settings';
           else if (route.name === 'All') iconName = 'list';
+
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         headerShown: false,
       })}
     >
-      <Tab.Screen name="All" options={{ title: 'All' }}>
-        {() => <NotesStackNavigator category="all" />}
-      </Tab.Screen>
-      <Tab.Screen name="Work" options={{ title: 'Work' }}>
-        {() => <NotesStackNavigator category="work" />}
-      </Tab.Screen>
-      <Tab.Screen name="Study" options={{ title: 'Study' }}>
-        {() => <NotesStackNavigator category="study" />}
-      </Tab.Screen>
-      <Tab.Screen name="Personal" options={{ title: 'Personal' }}>
-        {() => <NotesStackNavigator category="personal" />}
-      </Tab.Screen>
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ headerShown: true, title: 'Profile' }} />
+      <Tab.Screen name="All" component={AllNotesStack} options={{ title: 'All' }} />
+      <Tab.Screen name="Work" component={WorkNotesStack} options={{ title: 'Work' }} />
+      <Tab.Screen name="Study" component={StudyNotesStack} options={{ title: 'Study' }} />
+      <Tab.Screen name="Personal" component={PersonalNotesStack} options={{ title: 'Personal' }} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ headerShown: true, title: 'Profile' }}
+      />
     </Tab.Navigator>
   );
 }
